@@ -1,0 +1,18 @@
+server:
+  port: 8084
+
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/reservation_db
+    username: hotel
+    password: hotel
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-server:8761/eureka/

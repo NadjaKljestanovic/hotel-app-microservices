@@ -1,0 +1,272 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hotel-postgres
+    environment:
+      POSTGRES_USER: hotel
+      POSTGRES_PASSWORD: hotel
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hotel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: hotel-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  discovery-server:
+    build:
+      context: .
+      dockerfile: discovery-server/Dockerfile
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/config-repo
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+
+  guest-service:
+    build:
+      context: .
+      dockerfile: guest-service/Dockerfile
+    container_name: guest-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  hotel-service:
+    build:
+      context: .
+      dockerfile: hotel-service/Dockerfile
+    container_name: hotel-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  room-service:
+    build:
+      context: .
+      dockerfile: room-service/Dockerfile
+    container_name: room-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health || exit 1" ] # Change port per service!
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  reservation-service:
+    build:
+      context: .
+      dockerfile: reservation-service/Dockerfile
+    container_name: reservation-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      guest-service:
+        condition: service_started
+      hotel-service:
+        condition: service_started
+      room-service:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    container_name: payment-service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8085/actuator/health || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: notification-service
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8086/actuator/health || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      guest-service:
+        condition: service_started
+      hotel-service:
+        condition: service_started
+      room-service:
+        condition: service_started
+      reservation-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: hotel-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_MANAGEMENT_HEALTH_ENABLED: "false"
+      KC_HTTP_PORT: 8087
+    ports:
+      - "8087:8087"
+    command: start-dev
+    healthcheck:
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8087; echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3; grep -q '200 OK' <&3" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres-data:

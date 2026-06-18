@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: room-service
+  config:
+    import: optional:configserver:http://localhost:8888
+  datasource:
+    url: jdbc:postgresql://localhost:5432/room_db
+    username: hotel
+    password: hotel
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+server:
+  port: 8083
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

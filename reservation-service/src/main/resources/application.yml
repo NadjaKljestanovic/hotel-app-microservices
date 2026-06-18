@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: reservation-service
+  config:
+    import: optional:configserver:http://localhost:8888
+  datasource:
+    url: jdbc:postgresql://localhost:5432/reservation_db
+    username: hotel
+    password: hotel
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+        alphanumeric-ids:
+          enabled: true
+
+server:
+  port: 8084
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+    instances:
+      guest-service:
+        baseConfig: default
+      hotel-service:
+        baseConfig: default
+      room-service:
+        baseConfig: default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers

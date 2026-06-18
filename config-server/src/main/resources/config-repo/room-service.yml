@@ -1,0 +1,13 @@
+server:
+  port: 8083
+
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/room_db
+    username: hotel
+    password: hotel
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-server:8761/eureka/
