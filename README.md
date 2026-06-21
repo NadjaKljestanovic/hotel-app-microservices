@@ -1,6 +1,6 @@
 # Hotel Booking Microservices System
 
-A production-like hotel booking platform built with **Java 21**, **Spring Boot 3.x**, and **Spring Cloud**. The system demonstrates synchronous REST communication (OpenFeign), asynchronous event-driven communication (RabbitMQ), service discovery (Eureka), centralized configuration (Config Server), API routing (Spring Cloud Gateway), resilience (Resilience4j), containerization (Docker), and CI/CD (GitHub Actions).
+A production-like hotel booking platform built with **Java 21**, **Spring Boot 3.x**, and **Spring Cloud**. The system demonstrates synchronous REST communication (OpenFeign), asynchronous event-driven communication (RabbitMQ), service discovery (Eureka), centralized configuration (Config Server), API routing (Spring Cloud Gateway), resilience (Resilience4j), containerization (Docker), and authentication (KeyCloak).
 
 ## Business Logic
 
@@ -32,6 +32,7 @@ Clients interact only with the **API Gateway** (`http://localhost:8080`). Intern
 | reservation-service | 8084 | Reservations, Feign validation, event publishing |
 | payment-service | 8085 | Payment processing, event consumption/publishing |
 | notification-service | 8086 | Guest notifications from events |
+| authentication | 8087 | KeyCloak authentication for clients |
 
 ## Architecture Overview
 
@@ -177,7 +178,7 @@ Routes paths such as `/guests/**`, `/hotels/**`, `/reservations/**` to the appro
 
 - Java 21
 - Maven 3.9+
-- Docker and Docker Compose (for full stack)
+- Docker
 
 ## Docker and Docker Compose
 
@@ -234,17 +235,6 @@ Tests include:
 - Unit tests for service layer logic (Mockito)
 - Controller integration tests (MockMvc + H2)
 - Reservation tests with mocked Feign clients and event publisher
-
-## CI/CD Pipeline
-
-Workflow: `.github/workflows/ci-cd.yml`
-
-| Stage | Trigger | Actions |
-|-------|---------|---------|
-| **Development** | push, pull_request | Checkout, Java 21, `mvn compile`, `mvn test`, `mvn package` |
-| **Production (build)** | push (after tests) | Build Docker images for all services |
-
-Production deployment would push images to a registry (GHCR, ECR, etc.) and deploy to Kubernetes or another orchestrator. See commented steps in the workflow file.
 
 ## API Endpoints (via Gateway :8080)
 
@@ -339,24 +329,12 @@ Production deployment would push images to a registry (GHCR, ECR, etc.) and depl
 }
 ```
 
-## Production Considerations
-
-- Use secrets management for database and RabbitMQ credentials
-- Enable TLS for Gateway and inter-service traffic
-- Configure persistent volumes and backups for PostgreSQL
-- Use external config (Git-backed Config Server) for environment-specific settings
-- Add authentication/authorization (OAuth2/JWT) at the Gateway
-- Tune circuit breaker thresholds and add retry policies
-- Use health checks and readiness probes in orchestrators
-
 ## Future Improvements
 
 - **Prometheus + Grafana** – metrics and dashboards via Spring Boot Actuator
 - **Kubernetes** – Helm charts and cloud-native deployment
-- **Istio service mesh** – traffic management, mTLS, observability
-- **EFK stack** – centralized logging (Elasticsearch, Fluentd, Kibana)
+- **Istio service mesh** – traffic management, observability
 - Saga pattern for distributed transactions across reservation, payment, and room availability
-- Idempotent event consumers and dead-letter queues
 
 ## Project Structure
 
@@ -378,7 +356,3 @@ hotel-booking-microservices/
 ├── docker-compose.yml
 └── README.md
 ```
-
-## License
-
-University project – educational use.
