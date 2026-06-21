@@ -6,6 +6,7 @@ import com.example.hotelbooking.reservationservice.service.ReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,21 +27,25 @@ public class ReservationController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ReservationResponse createReservation(@Valid @RequestBody ReservationRequest request) {
         return reservationService.createReservation(request);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ReservationResponse getReservationById(@PathVariable Long id) {
         return reservationService.getReservationById(id);
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public List<ReservationResponse> getAllReservations() {
         return reservationService.getAllReservations();
     }
 
     @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ReservationResponse cancelReservation(@PathVariable Long id) {
         return reservationService.cancelReservation(id);
     }

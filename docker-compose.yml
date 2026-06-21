@@ -261,6 +261,8 @@ services:
       KC_HTTP_PORT: 8087
     ports:
       - "8087:8087"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
     command: start-dev
     healthcheck:
       test: [ "CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8087; echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3; grep -q '200 OK' <&3" ]
@@ -270,3 +272,4 @@ services:
 
 volumes:
   postgres-data:
+  keycloak-data:

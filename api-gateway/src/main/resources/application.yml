@@ -9,6 +9,8 @@ spring:
         locator:
           enabled: true
           lower-case-service-id: true
+      default-filters:
+        - TokenRelay
       routes:
         - id: guest-service
           uri: lb://guest-service
@@ -34,6 +36,12 @@ spring:
           uri: lb://notification-service
           predicates:
             - Path=/notifications/**
+  security:
+    oauth2:
+      resource server:
+        jwt:
+          issuer-uri: http://localhost:8087/realms/hotel_app
+          jwk-set-uri: http://localhost:8087/realms/hotel_app/protocol/openid-connect/certs
 
 server:
   port: 8080
@@ -48,3 +56,5 @@ management:
     web:
       exposure:
         include: health,info,gateway
+
+

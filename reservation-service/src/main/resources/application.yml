@@ -16,9 +16,15 @@ spring:
     port: 5672
     username: guest
     password: guest
+  security:
+    oauth2:
+      resource server:
+        jwt:
+          issuer-uri: http://localhost:8087/realms/hotel_app
+          jwk-set-uri: http://localhost:8087/realms/hotel_app/protocol/openid-connect/certs
   cloud:
     openfeign:
-      circuitbreaker:
+      circuit breaker:
         enabled: true
         alphanumeric-ids:
           enabled: true
