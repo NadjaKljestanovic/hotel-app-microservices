@@ -37,51 +37,96 @@ Clients interact only with the **API Gateway** (`http://localhost:8080`). Intern
 
 ```mermaid
 flowchart TB
-    Client([Client / Postman]) --> GW[API Gateway :8080]
 
-    GW --> GS[guest-service :8081]
-    GW --> HS[hotel-service :8082]
-    GW --> RS[room-service :8083]
-    GW --> RES[reservation-service :8084]
-    GW --> PS[payment-service :8085]
-    GW --> NS[notification-service :8086]
+    %% CLIENT
+    Client([Client / Postman])
 
-    subgraph Spring Cloud
-        Eureka[discovery-server :8761]
-        Config[config-server :8888]
+    %% SECURITY
+    KC[Keycloak<br/>:8087]
+
+    %% GATEWAY
+    GW[API Gateway<br/>:8080]
+
+    %% MICROSERVICES
+    subgraph Microservices
+        GS[guest-service<br/>:8081]
+        HS[hotel-service<br/>:8082]
+        RS[room-service<br/>:8083]
+        RES[reservation-service<br/>:8084]
+        PS[payment-service<br/>:8085]
+        NS[notification-service<br/>:8086]
     end
 
+    %% INFRASTRUCTURE
+    subgraph Infrastructure
+        Eureka[discovery-server<br/>:8761]
+        Config[config-server<br/>:8888]
+        RMQ[(RabbitMQ)]
+    end
+
+    %% DATABASES
+    subgraph Databases
+        PG1[(guest_db)]
+        PG2[(hotel_db)]
+        PG3[(room_db)]
+        PG4[(reservation_db)]
+        PG5[(payment_db)]
+        PG6[(notification_db)]
+    end
+
+    %% FLOW
+    Client --> GW
+    GW -->|OAuth2 / JWT| KC
+
+    GW --> GS
+    GW --> HS
+    GW --> RS
+    GW --> RES
+    GW --> PS
+    GW --> NS
+
+    %% FLAT KEYCLOAK LINKS (no crossing)
+    GS -.->|JWT| KC
+    HS -.->|JWT| KC
+    RS -.->|JWT| KC
+    RES -.->|JWT| KC
+    PS -.->|JWT| KC
+
+    %% CONFIG & DISCOVERY
+    GW --> Eureka
     GS --> Eureka
     HS --> Eureka
     RS --> Eureka
     RES --> Eureka
     PS --> Eureka
     NS --> Eureka
-    GW --> Eureka
 
+    GW --> Config
     GS --> Config
     HS --> Config
     RS --> Config
     RES --> Config
     PS --> Config
     NS --> Config
-    GW --> Config
 
-    RES -->|OpenFeign sync| GS
-    RES -->|OpenFeign sync| HS
-    RES -->|OpenFeign sync| RS
+    %% SYNC COMM
+    RES -->|Feign| GS
+    RES -->|Feign| HS
+    RES -->|Feign| RS
 
-    RES -->|ReservationCreatedEvent| RMQ[(RabbitMQ)]
+    %% ASYNC EVENTS
+    RES -->|ReservationCreated| RMQ
     RMQ --> PS
     RMQ --> NS
-    PS -->|PaymentCompletedEvent| RMQ
+    PS -->|PaymentCompleted| RMQ
 
-    GS --> PG1[(guest_db)]
-    HS --> PG2[(hotel_db)]
-    RS --> PG3[(room_db)]
-    RES --> PG4[(reservation_db)]
-    PS --> PG5[(payment_db)]
-    NS --> PG6[(notification_db)]
+    %% DATABASE LINKS
+    GS --> PG1
+    HS --> PG2
+    RS --> PG3
+    RES --> PG4
+    PS --> PG5
+    NS --> PG6
 ```
 
 ## Synchronous Communication
